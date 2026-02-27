@@ -1,11 +1,8 @@
 import express from "express";
-import dotenv from "dotenv";
-dotenv.config();    
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../generated/prisma/client.js";
 const port = 3000;
 const app = express();
 const prisma = new PrismaClient();
-
 app.get("/movies", async (req, res) => {
     const movies = await prisma.movie.findMany();
     res.json(movies)
