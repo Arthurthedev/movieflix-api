@@ -52,19 +52,19 @@
             }
           }
         },
-        "responses":{
-            "200": {
-                "description": "Filme atualizado com sucesso"
-            },
-            "404": {
-                "description": "Filme não encontrado"
-            },
-            "500":{
-                "description": "Falha ao atualizar resgistro do filme"
-            }
+        "responses": {
+          "200": {
+            "description": "Filme atualizado com sucesso"
+          },
+          "404": {
+            "description": "Filme não encontrado"
+          },
+          "500": {
+            "description": "Falha ao atualizar resgistro do filme"
+          }
         }
       },
-      "delete":{
+      "delete": {
         "tags": ["Movie"],
         "summary": "Remover um filme",
         "parameters": [
@@ -78,16 +78,50 @@
             }
           }
         ],
-        "responses":{
-            "200": {
-                "description": "Filme removido com sucesso"
-            },
-            "404": {
-                "description": "Filme não encontrado"
-            },
-            "500":{
-                "description": "Não foi possivel remover o filme"
+        "responses": {
+          "200": {
+            "description": "Filme removido com sucesso"
+          },
+          "404": {
+            "description": "Filme não encontrado"
+          },
+          "500": {
+            "description": "Não foi possivel remover o filme"
+          }
+        }
+      }
+    },
+    "/movies/{genreName}": {
+      "get": {
+        "tags": ["Movie"],
+        "summary": "Filtrar filme por gênero",
+        "parameters": [
+          {
+            "name": "genreName",
+            "in": "path",
+            "required": true,
+            "description": "Nome do genero",
+            "schema": {
+              "type": "string"
             }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Movie"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Não foi possivel filtrar filmes por gênero"
+          }
         }
       }
     }
