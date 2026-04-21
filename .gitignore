@@ -2,3 +2,6 @@
 /src/generated/prisma
 .env
 generated
+data/postgres/
+data/
+

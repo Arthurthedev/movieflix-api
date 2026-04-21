@@ -1,12 +1,12 @@
 import express from "express";
 import swaggerUi from "swagger-ui-express";
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 const port = 3000;
 const app = express();
 const prisma = new PrismaClient();
 import swaggerDocument from "../swagger.json" with { type: "json" };
 app.use(express.json());
-app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/movies", async (req, res) => {
   const movies = await prisma.movie.findMany({
@@ -85,41 +85,154 @@ app.put("/movies/:id", async (req, res) => {
 
 app.delete("/movies/:id", async (req, res) => {
   const id = Number(req.params.id);
-try{
-  const movie = await prisma.movie.findUnique({ where: { id } });
+  try {
+    const movie = await prisma.movie.findUnique({ where: { id } });
 
-  if (!movie) {
-    return res.status(404).send({message: "Filme não encontrado"});
+    if (!movie) {
+      return res.status(404).send({ message: "Filme não encontrado" });
+    }
+    await prisma.movie.delete({ where: { id } });
+  } catch (error) {
+    return res
+      .status(500)
+      .send({ message: "Ocorreu um erro ao deletar o filme" });
   }
-  await prisma.movie.delete({ where: { id } });
-}catch(error){
-    return res.status(500).send({message: "Ocorreu um erro ao deletar o filme"})
-}
- return res.status(200).send("Filme deletado com sucesso!");
+  return res.status(200).send("Filme deletado com sucesso!");
 });
 
 app.get("/movies/:genreName", async (req, res) => {
-  try{
+  try {
     const moviesFilteredByGenreName = await prisma.movie.findMany({
-      include:{
+      include: {
         genres: true,
-        languages: true
+        languages: true,
       },
       where: {
         genres: {
           name: {
             equals: req.params.genreName,
-            mode: "insensitive"
-          }
-        }
-      }
-    })
-    return res.status(200).send(moviesFilteredByGenreName)
-  }catch(error){
-    return res.status(500).send({message: "Não foi possivel filtrar filmes"})
+            mode: "insensitive",
+          },
+        },
+      },
+    });
+    return res.status(200).send(moviesFilteredByGenreName);
+  } catch (error) {
+    return res.status(500).send({ message: "Não foi possivel filtrar filmes" });
   }
-})
+});
 
 app.listen(port, () => {
   console.log(`Servidor em execução na porta http://localhost:${port}`);
 });
+
+// EXERCICIOS DE BACKEND
+
+// 1° ATUALIZAR UM GENERO
+
+// app.put("/genres/:id", async (req, res) => {
+//   const { id } = req.params;
+//   const { name } = req.body;
+//   if (!name) {
+//     res
+//       .status(400)
+//       .send({
+//         message: "O nome é um campo obrigatório ao atualizar um gênero",
+//       });
+//   }
+
+//   try {
+//     const genre = await prisma.genre.findUnique({
+//       where: {
+//         id: Number(id),
+//       },
+//     });
+//     if (!genre) {
+//      return res
+//         .status(400)
+//         .send({ message: "Não foi possivel encontrar esse gênero" });
+//     }
+
+//     const existingGenre = await prisma.genre.findFirst({
+//       where: {
+//         name: { equals: name, mode: "insensitive" },
+//         id: { not: Number(id) },
+//       },
+//     });
+
+//     if (existingGenre) {
+//       return res
+//         .status(409)
+//         .send({ message: "Este nome de gênero já existe." });
+//     }
+//     const updateGenre = await prisma.genre.update({
+//       where: {
+//         id: Number(id),
+//       },
+//       data: {
+//         name,
+//       },
+//     });
+//     res.status(200).json(updateGenre);
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).send({ message: "Houve um erro ao atualizar este genero" });
+//   }
+// });
+
+// 2° ADICIONAR UM NOVO GENERO
+
+// app.post("/genres", async (req, res) => {
+//   const { name } = req.body;
+
+//  // 1. Verifica se existe
+//   if (!name) {
+//     return res
+//       .status(400)
+//       .send({ message: "O nome é obrigatório ao criar um gênero" });
+//   }
+
+//   // 2. Verifica se é string
+//   if (typeof name !== "string") {
+//     return res
+//       .status(400)
+//       .send({ message: "O nome deve ser um texto válido" });
+//   }
+
+//   const normalizedName = name.trim();
+
+//   // 3. Verifica se não ficou vazio depois do trim
+//   if (!normalizedName) {
+//     return res
+//       .status(400)
+//       .send({ message: "O nome não pode ser vazio" });
+//   }
+
+//   // 4. Verifica se é apenas número
+//   if (!isNaN(Number(normalizedName))) {
+//     return res
+//       .status(400)
+//       .send({ message: "O nome do gênero não pode ser apenas números" });
+//   }
+//   try {
+//     const existingGenre = await prisma.genre.findFirst({
+//       where: {
+//         name: { equals: name, mode: "insensitive" },
+//       },
+//     });
+//     if (existingGenre) {
+//       return res.status(409).send({ message: "Esse gênero já existe" });
+//     }
+//     const newGenre = await prisma.genre.create({
+//       data: {
+//         name,
+//       },
+//     });
+//     res.status(201).json(newGenre);
+//   } catch (error) {
+//     console.log(error);
+//     res
+//       .status(500)
+//       .send({ message: "Não foi possivel criar este novo gênero" });
+//   }
+// });
