@@ -8,21 +8,37 @@ import swaggerDocument from "../swagger.json" with { type: "json" };
 app.use(express.json());
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.get("/movies", async (req, res) => {
-  const movies = await prisma.movie.findMany({
-    orderBy: {
-      title: "asc",
-    },
-    include: {
-      genres: true,
-      languages: true,
-    },
-  });
-  res.json(movies);
+app.get("/movies", async (_, res) => {
+    try {
+        const movies = await prisma.movie.findMany({
+            orderBy: {
+                title: "asc",
+            },
+            include: {
+                genres: true,
+                languages: true,
+            },
+        });
+		    const totalMovies = movies.length;
+		    let totalDuration = 0;
+		    for (let movie of movies) {
+		      totalDuration += movie.duration ?? 0
+		    }
+		    const averageDuration = totalMovies > 0 ? totalDuration / totalMovies : 0;
+
+        res.json({
+            totalMovies,
+            averageDuration,
+            movies,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({ message: "Houve um problema ao buscar os filmes." });
+    }
 });
 
 app.post("/movies", async (req, res) => {
-  const { title, genre_id, language_id, oscar_count, release_date } = req.body;
+  const { title, genre_id, language_id, oscar_count, duration, release_date} = req.body;
 
   try {
     const movieWithTheSameTittle = await prisma.movie.findFirst({
@@ -43,10 +59,13 @@ app.post("/movies", async (req, res) => {
         genre_id,
         language_id,
         oscar_count,
+        duration,
         release_date: new Date(release_date),
       },
     });
   } catch (error) {
+    console.log(error);
+    
     return res.status(500).send({ message: "Falha ao cadastrar um filme" });
   }
   res.status(201).send();
@@ -236,3 +255,44 @@ app.listen(port, () => {
 //       .send({ message: "Não foi possivel criar este novo gênero" });
 //   }
 // });
+
+// 3° BUSCAR GENEROS
+// app.get("/genres", async (_, res) => {
+//     try {
+//         const genres = await prisma.genre.findMany({
+//             orderBy: {
+//                 name: "asc",
+//             },
+//         });
+
+//         res.json(genres);
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send({ message: "Houve um problema ao buscar os gêneros." });
+//     }
+// });
+
+// 4° DELETAR GENERO
+// app.delete("/genres/:id", async (req, res) => {
+//     const { id } = req.params;
+
+//     try {
+//         const genre = await prisma.genre.findUnique({
+//             where: { id: Number(id) },
+//         });
+
+//         if (!genre) {
+//             return res.status(404).send({ message: "Gênero não encontrado." });
+//         }
+
+//         await prisma.genre.delete({
+//             where: { id: Number(id) },
+//         });
+
+//         res.status(200).send({ message: "Gênero removido com sucesso." });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).send({ message: "Houve um problema ao remover o gênero." });
+//     }
+// });
+
