@@ -8,37 +8,75 @@ import swaggerDocument from "../swagger.json" with { type: "json" };
 app.use(express.json());
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-app.get("/movies", async (_, res) => {
-    try {
-        const movies = await prisma.movie.findMany({
-            orderBy: {
-                title: "asc",
-            },
-            include: {
-                genres: true,
-                languages: true,
-            },
-        });
-		    const totalMovies = movies.length;
-		    let totalDuration = 0;
-		    for (let movie of movies) {
-		      totalDuration += movie.duration ?? 0
-		    }
-		    const averageDuration = totalMovies > 0 ? totalDuration / totalMovies : 0;
+// EXERCICIO 7
+app.get("/movies/language", async (req, res) => {
+  const { language } = req.query;
+  const languageName = language as string;
 
-        res.json({
-            totalMovies,
-            averageDuration,
-            movies,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).send({ message: "Houve um problema ao buscar os filmes." });
+  let where = {};
+  if (languageName) {
+    where = {
+      languages: {
+        name: {
+          equals: languageName,
+          mode: "insensitive",
+        },
+      },
+    };
+  }
+  try {
+    const movies = await prisma.movie.findMany({
+      where: where,
+      include: {
+        genres: true,
+        languages: true,
+      },
+    });
+    if (movies.length === 0) {
+      return res.status(404).json({
+        message: "Nenhum filme encontrado para esse idioma",
+      });
     }
+
+    res.json(movies);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Houve um problema ao buscar os filmes." });
+  }
+});
+// ACABA AQUI O EX 7
+app.get("/movies", async (_, res) => {
+  try {
+    const movies = await prisma.movie.findMany({
+      orderBy: {
+        title: "asc",
+      },
+      include: {
+        genres: true,
+        languages: true,
+      },
+    });
+    const totalMovies = movies.length;
+    let totalDuration = 0;
+    for (let movie of movies) {
+      totalDuration += movie.duration ?? 0;
+    }
+    const averageDuration = totalMovies > 0 ? totalDuration / totalMovies : 0;
+
+    res.json({
+      totalMovies,
+      averageDuration,
+      movies,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Houve um problema ao buscar os filmes." });
+  }
 });
 
 app.post("/movies", async (req, res) => {
-  const { title, genre_id, language_id, oscar_count, duration, release_date} = req.body;
+  const { title, genre_id, language_id, oscar_count, duration, release_date } =
+    req.body;
 
   try {
     const movieWithTheSameTittle = await prisma.movie.findFirst({
@@ -65,7 +103,7 @@ app.post("/movies", async (req, res) => {
     });
   } catch (error) {
     console.log(error);
-    
+
     return res.status(500).send({ message: "Falha ao cadastrar um filme" });
   }
   res.status(201).send();
@@ -146,9 +184,7 @@ app.listen(port, () => {
 });
 
 // EXERCICIOS DE BACKEND
-
 // 1° ATUALIZAR UM GENERO
-
 // app.put("/genres/:id", async (req, res) => {
 //   const { id } = req.params;
 //   const { name } = req.body;
@@ -296,3 +332,100 @@ app.listen(port, () => {
 //     }
 // });
 
+// O EX 5 FOI MODIFICAR O MODEL MOVIES E MUDAR ALGUMAS COISAS NA ROTA DE GET (PRIMEIRA ROTA DO SERVER.TS)
+
+// 6° Modificando o endpoint de listagem de filmes para permitir ordenação por diversos critérios
+
+// app.get("/movies/sort", async (req, res) => {
+//   const { sort } = req.query;
+//   console.log(sort);
+//   let orderBy:
+//     | Prisma.MovieOrderByWithRelationInput
+//     | Prisma.MovieOrderByWithRelationInput[]
+//     | undefined;
+//   if (sort === "title") {
+//     orderBy = {
+//       title: "asc",
+//     };
+//   } else if (sort === "release_date") {
+//     orderBy = {
+//       release_date: "asc",
+//     };
+//   }
+
+//   try {
+//     const movies = await prisma.movie.findMany({
+//       ...(orderBy && { orderBy }),
+//       include: {
+//         genres: true,
+//         languages: true,
+//       },
+//     });
+
+//     res.json(movies);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).send({ message: "Houve um problema ao buscar os filmes." });
+//   }
+// });
+
+// 7° Criando um filtro de language para o endpoint de listagem de filmes
+// O EXERCICIO 7 TA NO TOPO DO SERVE.TS POR CONTA DE UM ERRO DE CONFLITO NA ORDEM QUE AS COISAS SAO LIDAS NO EXPRESS
+
+// 8° OS EXERCICIOS 6 E 7 EM UM UNICO CODIGO
+
+/*
+Este endpoint permite que os usuários filtrem filmes por idioma e ordenem os resultados 
+por título ou data de lançamento. Se nenhum desses parâmetros for fornecido, o endpoint 
+retornará todos os filmes sem qualquer ordenação específica.
+*/
+
+app.get("/movies/filter", async (req, res) => {
+  const { language, sort } = req.query;
+  const languageName = language as string;
+  const sortName = sort as string;
+
+  let orderBy = {};
+  if (sortName === "title") {
+    orderBy = {
+      title: "asc",
+    };
+  } else if (sortName === "release_date") {
+    orderBy = {
+      release_date: "asc",
+    };
+  }
+
+  let where = {};
+  if (languageName) {
+    where = {
+      languages: {
+        name: {
+          equals: languageName,
+          mode: "insensitive",
+        },
+      },
+    };
+  }
+
+  try {
+    const movies = await prisma.movie.findMany({
+      orderBy,
+      where: where,
+      include: {
+        genres: true,
+        languages: true,
+      },
+    });
+    if (movies.length === 0) {
+      return res.status(404).json({
+        message: "Nenhum filme encontrado para esse idioma",
+      });
+    }
+
+    res.json(movies);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ message: "Houve um problema ao buscar os filmes." });
+  }
+});
